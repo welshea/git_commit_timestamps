@@ -1,4 +1,4 @@
-## PURPOSE:
+## PURPOSE
 
 Hack timestamp support into Git via 3rd party scripts.  Set the commit date
 for each file to the original timestamp of the file, so that the timestamp may
@@ -15,7 +15,7 @@ User-specified branches are not currently supported.
 
 
 
-## METHOD:
+## METHOD
 
 Files are committed one-by-one.  The commit date is back-dated by setting the
 GIT_AUTHOR_DATE and GIT_COMMITTER_DATE enviroment variables prior to the commit
@@ -60,7 +60,7 @@ when to back-date it to).
 
 
 
-## SYNTAX:
+## SYNTAX
 
 git_commit_with_timestamps.pl ["user message"] [--commit]
 
