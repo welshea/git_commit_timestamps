@@ -2,7 +2,7 @@
 
 Hack timestamp support into Git via 3rd party scripts.  Set the commit date
 for each file to the original timestamp of the file, so that the timestamp may
-be later locally restored via Rodrigo Silva's
+be later restored locally via Rodrigo Silva's
 [git-restore-mtime](https://github.com/MestreLion/git-tools) tool.
 
 If a file exists in the current HEAD and the local timestamp is older than
