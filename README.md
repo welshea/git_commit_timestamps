@@ -44,7 +44,9 @@ provided message, the operation to be performed (taken from its 'git status'
 line), and the timestamp to be recorded (if commit dates are altered in the
 future, we'll still have a record of the intended timestamp).  Semicolons
 are inserted between the user message, operation message, and timestamp
-message, to improve readability in the project web interface.
+message, to improve readability in the project web interface.  To preserve
+new line formatting, the message is piped to git using:
+'echo -e -n "message to commit" | git commit -F - "file to commit"'.
 
 Generally, the timestamp message will simply be the timestamp of the local
 file.  If the commit date was NOT back-dated (the local timestamp was older
