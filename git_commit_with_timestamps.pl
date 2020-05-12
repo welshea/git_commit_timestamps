@@ -21,13 +21,16 @@ use POSIX qw(strftime);
 
 
 
-$dryrun_flag = 1;
 $message_user_str = '';
+$dryrun_flag      = 1;
+$force_flag       = 0;
+$desync_detected  = 0;
+
 for ($i = 0; $i < @ARGV; $i++)
 {
     $field = $ARGV[$i];
 
-    if ($field =~ /^--/)
+    if ($field =~ /^-/)
     {
         if ($field eq '--dryrun')
         {
@@ -36,6 +39,25 @@ for ($i = 0; $i < @ARGV; $i++)
         elsif ($field eq '--commit')
         {
             $dryrun_flag = 0;
+        }
+        elsif ($field eq '--force')
+        {
+            $force_flag = 1;
+        }
+        else
+        {
+            print STDERR "git_commit_with_timestamps.pl [options] [\"commit message\"]\n";
+            print STDERR "\n";
+            print STDERR "   Options:\n";
+            print STDERR "      --commit      commit staged changes\n";
+            print STDERR "      --dryrun      perform a dry run, do not commit (default)\n";
+            print STDERR "      --force       ignore de-synced staging issues, commit anyways\n";
+            print STDERR "\n";
+            print STDERR "   Options and commit message can be given in any order\n";
+            print STDERR "\n";
+            print STDERR "   Report bugs to <Eric.Welsh\@moffitt.org>\n";
+            
+            exit(1);
         }
     }
     else
@@ -57,7 +79,8 @@ if (!defined($message_user_str))
 
 # run git status to retrieve list of commits
 $git_status_results = `git status -s -uno`;
-$bad_status_flag = 0;
+$bad_status_flag    = 0;
+
 if ($git_status_results =~ /\S/)
 {
     @lines = split /\n/, $git_status_results;
@@ -104,15 +127,23 @@ if ($git_status_results =~ /\S/)
         elsif ($char_1 =~ /[MADRC]/ && $char_2 ne ' ')
         {
             $desynced_hash{$line} = 1;
+            $desync_detected      = 1;
 
-            $problem_flag = 1;
+            if ($force_flag == 0)
+            {
+                $problem_flag = 1;
+            }
         }
         # staging out of sync
         elsif ($char_2 =~ /[MADRC]/ && $char_1 ne ' ')
         {
             $desynced_hash{$line} = 1;
+            $desync_detected      = 1;
 
-            $problem_flag = 1;
+            if ($force_flag == 0)
+            {
+                $problem_flag = 1;
+            }
         }
         
         if ($problem_flag)
@@ -122,7 +153,7 @@ if ($git_status_results =~ /\S/)
 
 
         $commit_flag = 0;
-        if ($char_1 =~ /[MADRC]/ && $char_2 eq ' ')
+        if ($char_1 =~ /[MADRC]/)
         {
             $commit_flag = 1;
         }
@@ -311,8 +342,7 @@ foreach $file (@files_to_commit_array)
         else
         {
             # timestamp wasn't found for some reason
-            $message_timestamp_str = sprintf "[%s]",
-                '[timestamp missing]';
+            $message_timestamp_str = '[timestamp missing]';
         }
     }
     else
@@ -428,6 +458,10 @@ foreach $file (@files_to_commit_array)
 }
 
 
+if ($desync_detected && $force_flag)
+{
+    print STDERR "WARNING    de-synced staged files detected, be sure git commits as intended\n";
+}
 
 if ($dryrun_flag)
 {
