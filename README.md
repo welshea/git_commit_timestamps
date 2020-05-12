@@ -19,7 +19,11 @@ User-specified branches are not currently supported.
 
 Files are committed one-by-one.  The commit date is back-dated by setting the
 GIT_AUTHOR_DATE and GIT_COMMITTER_DATE enviroment variables prior to the commit
-for each individual file.
+for each individual file.  Existing files older than the version in the
+repository, as well as newly deleted files, are *NOT* back-dated.  Files
+are committed in chronological order, oldest to newest.  Files with tied
+timestamps (such as deleted files) will commit in reverse alphabetical order,
+so that they are displayed alphabetically in 'git log'.
 
 'git status -s -uno' is run and parsed to retrieve the list of files Git plans
 to commit.  The status of each file is printed before aborting or proceeding
@@ -65,7 +69,7 @@ when to back-date it to).
 
 ## SYNTAX
 
-git_commit_with_timestamps.pl ["user message"] [--commit] [--force]
+git_commit_timestamps.pl ["user message"] [--commit] [--force]
 
 If no "user message" is specified, then only the auto-generated operation
 and timestamp messages are recorded for each commit.
@@ -91,7 +95,7 @@ expected.
 
 #### _Examples:_
 
-\> git_commit_with_timestamps.pl "test adding a file"
+\> git_commit_timestamps.pl "test adding a file"
 <pre>
   GIT_TODO   A  test_files/file1.txt
   DRYRUN: ADD:  test_files/file1.txt
@@ -114,10 +118,10 @@ Adding the --commit flag would result in the following git log entry:
 Potentially unintended de-synced staging behavior:
 
 <pre>
-> echo > delete me
+> echo "delete_me" > delete me
 > git add delete_me
 > rm delete_me       # NOTE -- delete was performed outside of 'git rm'
-> git_commit_with_timestamps.pl --force
+> git_commit_timestamps.pl --force
    GIT_TODO   AD delete_me
    DESYNCED   AD delete_me
    DRYRUN: ADD:  delete_me
