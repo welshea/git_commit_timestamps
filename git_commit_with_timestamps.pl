@@ -144,11 +144,11 @@ if ($git_status_results =~ /\S/)
                 $files_to_commit_hash{$file_2} = $line;
             }
             
-#            if ($file_2 ne '')
-#            {
+            if ($file_2 ne '')
+            {
 #                $file_from_to_hash{$file_1} = $file_2;
-#                $file_to_from_hash{$file_2} = $file_1;
-#            }
+                $file_to_from_hash{$file_2} = $file_1;
+            }
 
 #            printf "%s\t%s\t%s\t%s\n",
 #                $char_1, $char_2, $file_1, $file_2;
@@ -373,20 +373,57 @@ foreach $file (@files_to_commit_array)
         $ENV{'GIT_COMMITTER_DATE'} = $timestamp_str;
     }
     
-    # commit the file
-    if ($dryrun_flag == 0)
+    # Special handling of renames:
+    #
+    #   The deleted file must be commited at the same time, rather than
+    #   separately, otherwise the deleted/renamed file won't be linked and
+    #   preserve its revision history, and the delete won't even get
+    #   committed by the script at all (since there was no git status line
+    #   for the deleted file)!
+    #
+    # We will assume that the deleted file isn't in the 'git status' list,
+    # so it won't have already been committed elsewhere.  I might get
+    # paranoid and check for this elsewhere, we'll see....
+    #
+    # We will assume that the renamed files only get detected as renamed
+    # once.
+    #
+    # If there is a chain of renames, I'm not sure what will happen.
+    #
+    if ($operation eq 'R' && defined($file_to_from_hash{$file}))
     {
-#        print "COMMIT: $message_final_str_print\n";
-        print "COMMIT: $message_operation_str\n";
-        print "COMMIT:       $message_timestamp_str\n";
+        $orig_file = $file_to_from_hash{$file};
 
-        `echo -e -n $message_final_str | git commit -F - "$file"`;
+        # commit the file
+        if ($dryrun_flag == 0)
+        {
+            print "COMMIT: $message_operation_str\n";
+            print "COMMIT:       $message_timestamp_str\n";
+
+            `echo -e -n $message_final_str | git commit -F - "$orig_file" "$file"`;
+        }
+        else
+        {
+            print "DRYRUN: $message_operation_str\n";
+            print "DRYRUN:       $message_timestamp_str\n";
+        }
     }
+    # regular single file commit
     else
     {
-#        print "DRYRUN: $message_final_str_print\n";
-        print "DRYRUN: $message_operation_str\n";
-        print "DRYRUN:       $message_timestamp_str\n";
+        # commit the file
+        if ($dryrun_flag == 0)
+        {
+            print "COMMIT: $message_operation_str\n";
+            print "COMMIT:       $message_timestamp_str\n";
+
+            `echo -e -n $message_final_str | git commit -F - "$file"`;
+        }
+        else
+        {
+            print "DRYRUN: $message_operation_str\n";
+            print "DRYRUN:       $message_timestamp_str\n";
+        }
     }
 }
 
