@@ -1,9 +1,5 @@
 #!/usr/bin/perl -w
 
-# TODO -- store commit messages and timestamps,
-#         sort files on timestamp,
-#         commit in oldest to newest timestamp order
-
 use POSIX qw(strftime);
 
 
@@ -20,11 +16,38 @@ use POSIX qw(strftime);
 #
 
 
+sub cmp_timestamps
+{
+    my $file_1  = $a;
+    my $file_2  = $b;
+    my $mtime_1 = $commit_hash{$file_1}{mtime};
+    my $mtime_2 = $commit_hash{$file_2}{mtime};
+    
+    # set missing timestamps to bogus far-future dates, so they sort last
+    if ($mtime_1 eq '')
+    {
+        $mtime_1 = 9E99;
+    }
+    if ($mtime_2 eq '')
+    {
+        $mtime_2 = 9E99;
+    }
+    
+    if ($mtime_1 < $mtime_2) { return -1; }
+    if ($mtime_1 > $mtime_2) { return  1; }
+    
+    # when tied, return reverse alphabetical order,
+    # so that they are in alphabetical order when displayed with git log
+    return ($file_2 cmp $file_1);
+}
 
-$message_user_str = '';
-$dryrun_flag      = 1;
-$force_flag       = 0;
-$desync_detected  = 0;
+
+$current_local_mtime = time();
+
+$message_user_str   = '';
+$dryrun_flag        = 1;
+$force_flag         = 0;
+$desync_detected    = 0;
 
 for ($i = 0; $i < @ARGV; $i++)
 {
@@ -46,7 +69,7 @@ for ($i = 0; $i < @ARGV; $i++)
         }
         else
         {
-            print STDERR "git_commit_with_timestamps.pl [options] [\"commit message\"]\n";
+            print STDERR "git_commit_timestamps.pl [options] [\"commit message\"]\n";
             print STDERR "\n";
             print STDERR "   Options:\n";
             print STDERR "      --commit      commit staged changes\n";
@@ -259,7 +282,7 @@ foreach $file (@files_to_commit_array)
 }
 
 
-# commit each file separately, changing the time stamp of each
+# get ready to commit each file
 foreach $file (@files_to_commit_array)
 {
     $status_line     = $files_to_commit_hash{$file};
@@ -273,7 +296,11 @@ foreach $file (@files_to_commit_array)
     # should only occur on deleted files
     if (!defined($timestamp_str))
     {
-        $timestamp_str = '';
+        $timestamp_str   = '';
+    }
+    if (!defined($timestamp_mtime))
+    {
+        $timestamp_mtime = '';
     }
 
     if ($timestamp_str =~ /[0-9]/)
@@ -293,6 +320,12 @@ foreach $file (@files_to_commit_array)
                 $git_newer_flag = 1;
             }
         }
+    }
+    # make sure the invalid time variables are blanked out
+    else
+    {
+        $timestamp_mtime = '';
+        $timestamp_str   = '';
     }
 
     # comment operation performed on each committed file
@@ -331,22 +364,37 @@ foreach $file (@files_to_commit_array)
                     $timestamp_str;
             }
             # commit git server timestamp as usual, comment as local
+            # overwrite local file timestamp internally
             else
             {
-                $iso_time_str = strftime("%c %z", localtime());
+                $timestamp_mtime = $current_local_mtime;
+                $timestamp_str   = strftime("%c %z",
+                                            localtime($timestamp_mtime));
 
-                $message_timestamp_str = sprintf "[%s] (local",
-                    $iso_time_str;
+                $message_timestamp_str = sprintf "[%s] (local)",
+                    $timestamp_str;
             }
         }
         else
         {
+            # set time variables to current local time, since we don't know
+            $timestamp_mtime = $current_local_mtime;
+            $timestamp_str   = strftime("%c %z",
+                                        localtime($timestamp_mtime));
+            $git_newer_flag  = 1;
+
             # timestamp wasn't found for some reason
             $message_timestamp_str = '[timestamp missing]';
         }
     }
     else
     {
+        # set time variables to current local time, since we delete *NOW*
+        $timestamp_mtime = $current_local_mtime;
+        $timestamp_str   = strftime("%c %z",
+                                    localtime($timestamp_mtime));
+        $git_newer_flag  = 1;
+
         $message_timestamp_str = '[file deleted]';
     }
     
@@ -380,8 +428,27 @@ foreach $file (@files_to_commit_array)
     $message_final_str =~ s/[\r\n]+$//;
 
     $message_final_str       = "\"$message_final_str\"";
-    $message_final_str_print = $message_final_str;
-    $message_final_str_print =~ s/\n/\\n/g;
+    
+    $commit_hash{$file}{mtime}             = $timestamp_mtime;
+    $commit_hash{$file}{timestamp}         = $timestamp_str;
+    $commit_hash{$file}{message_operation} = $message_operation_str;
+    $commit_hash{$file}{message_timestamp} = $message_timestamp_str;
+    $commit_hash{$file}{message_final}     = $message_final_str;
+    $commit_hash{$file}{operation}         = $operation;
+    $commit_hash{$file}{git_newer}         = $git_newer_flag;
+}
+
+
+# commit the files
+foreach $file (sort cmp_timestamps keys %commit_hash)
+{
+    $timestamp_mtime       = $commit_hash{$file}{mtime};
+    $timestamp_str         = $commit_hash{$file}{timestamp};
+    $message_operation_str = $commit_hash{$file}{message_operation};
+    $message_timestamp_str = $commit_hash{$file}{message_timestamp};
+    $message_final_str     = $commit_hash{$file}{message_final};
+    $operation             = $commit_hash{$file}{operation};
+    $git_newer_flag        = $commit_hash{$file}{git_newer};
 
     # unset the date override environment variables
     if (defined($ENV{'GIT_AUTHOR_DATE'}))
