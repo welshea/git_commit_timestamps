@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
-# TOFIX -- it looks like the git server is using local time, not GMT time
-# so, when I set commit time to gmtime format, it's 4 hours off from 
-# committing outside the script
+# TODO -- store commit messages and timestamps,
+#         sort files on timestamp,
+#         commit in oldest to newest timestamp order
 
 use POSIX qw(strftime);
 
