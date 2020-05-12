@@ -30,7 +30,8 @@ proceed any further.  Files with staging/merging conflicts are listed as
 "DESYNCED" or "UNMERGED", respectively, while files the script will later
 commit are listed as "GIT_TODO".  De-synced files can generally be resolved
 by issuing 'git add -A "filename"' or 'git reset -- "filename"' commands, as
-appropriate.
+appropriate.  The --force option can be specified to override DESYNCED issues
+and force them to be committed (UNMERGED issues will still abort).
 
 'git ls-tree HEAD "filename"' is then used to check to see if a file already
 exists in the current HEAD of the repository.  If the file exists, then
@@ -64,7 +65,7 @@ when to back-date it to).
 
 ## SYNTAX
 
-git_commit_with_timestamps.pl ["user message"] [--commit]
+git_commit_with_timestamps.pl ["user message"] [--commit] [--force]
 
 If no "user message" is specified, then only the auto-generated operation
 and timestamp messages are recorded for each commit.
@@ -77,12 +78,18 @@ Thus, a dry run is the default, and --commit must be additionally specified in
 order for the operations to actually be committed.  "DRYRUN:" lines will
 change to "COMMIT:" lines to indicate that a commit was requested.
 
+The --force option should be used with caution.  Git can detect and commit
+changes in unexpected ways when the staged and unstaged versions of the file
+are both different from the repository, so make *absolutely sure* git has
+correctly detected the changes that you intended to commit before you commit
+them (run without --commit first, carefully inspect the "DRYRUN:" lines).
+
 No error checking is performed, so it is recommended that you check 'git log'
 and 'git status' after you commit, to be sure that everything worked as
 expected.
 
 
-#### _Example:_
+#### _Examples:_
 
 \> git_commit_with_timestamps.pl "test adding a file"
 <pre>
@@ -102,4 +109,19 @@ Adding the --commit flag would result in the following git log entry:
 
      ADD:  test_files/file1.txt;
            [Fri May  8 14:07:58 2020 -0400]
+</pre>
+
+Potentially unintended de-synced staging behavior:
+
+<pre>
+\> echo \> delete me
+\> git add delete_me
+\> rm delete_me       # NOTE -- delete was performed outside of 'git rm'
+\> git_commit_with_timestamps.pl --force
+   GIT_TODO   AD delete_me
+   DESYNCED   AD delete_me
+   DRYRUN: ADD:  delete_me
+   DRYRUN:       [timestamp missing]
+   WARNING    de-synced staged files detected, be sure git commits as intended
+   Re-run with --commit to commit the changes
 </pre>
