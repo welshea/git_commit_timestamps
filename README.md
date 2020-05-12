@@ -114,10 +114,10 @@ Adding the --commit flag would result in the following git log entry:
 Potentially unintended de-synced staging behavior:
 
 <pre>
-\> echo \> delete me
-\> git add delete_me
-\> rm delete_me       # NOTE -- delete was performed outside of 'git rm'
-\> git_commit_with_timestamps.pl --force
+> echo > delete me
+> git add delete_me
+> rm delete_me       # NOTE -- delete was performed outside of 'git rm'
+> git_commit_with_timestamps.pl --force
    GIT_TODO   AD delete_me
    DESYNCED   AD delete_me
    DRYRUN: ADD:  delete_me
