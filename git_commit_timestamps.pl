@@ -448,7 +448,7 @@ foreach $file (@files_to_commit_array)
         {
             $message_final_str .= ";\n";
         }
-        $message_final_str .= '      $message_timestamp_str';
+        $message_final_str .= '      ' . $message_timestamp_str;
     }
     
     # remove trailing newline, since it just adds clutter
