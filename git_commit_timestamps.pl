@@ -9,7 +9,7 @@ use POSIX qw(strftime);
 # git doesn't wrap commit messages, either when commiting or displaying log.
 #
 # So, we'll need to do something like:
-#    echo -e -n "line1\nline2\nline3\n" | git commit -F -
+#    echo -e -n 'line1\nline2\nline3\n' | git commit -F -
 #
 # I'll need to write a function to take the message to be commited,
 #  line wrap it, then pipe it to git when committing
@@ -44,10 +44,11 @@ sub cmp_timestamps
 
 $current_local_mtime = time();
 
-$message_user_str   = '';
-$dryrun_flag        = 1;
-$force_flag         = 0;
-$desync_detected    = 0;
+$message_user_str    = '';
+$dryrun_flag         = 1;
+$force_flag          = 0;
+$desync_detected     = 0;
+$query_ct_flag       = 0;
 
 for ($i = 0; $i < @ARGV; $i++)
 {
@@ -67,16 +68,22 @@ for ($i = 0; $i < @ARGV; $i++)
         {
             $force_flag = 1;
         }
+        elsif ($field eq '--use-ct')
+        {
+            $query_ct_flag = 1;
+        }
         else
         {
-            print STDERR "git_commit_timestamps.pl [options] [\"commit message\"]\n";
+            print STDERR "git_commit_timestamps.pl [options] [\'commit message\']\n";
             print STDERR "\n";
             print STDERR "   Options:\n";
             print STDERR "      --commit      commit staged changes\n";
             print STDERR "      --dryrun      perform a dry run, do not commit (default)\n";
             print STDERR "      --force       ignore de-synced staging issues, commit anyways\n";
+            print STDERR "      --query-ct    query repository commit time, rather than author time\n";
             print STDERR "\n";
             print STDERR "   Options and commit message can be given in any order\n";
+            print STDERR "   Enclose the commit message in '' to ensure proper escape handling\n";
             print STDERR "\n";
             print STDERR "   Report bugs to <Eric.Welsh\@moffitt.org>\n";
             
@@ -92,12 +99,16 @@ for ($i = 0; $i < @ARGV; $i++)
     }
 }
 
-
 if (!defined($message_user_str))
 {
     $message_user_str = "";
 }
 
+# deal with escaped EOL characters within user message
+# strip final EOL
+$message_user_str =~ s/(?<!\\)\\n|\n/\n/g;;
+$message_user_str =~ s/(?<!\\)\\r|\r/\r/g;;
+$message_user_str =~ s/[\r\n]+$//;
 
 
 # run git status to retrieve list of commits
@@ -285,13 +296,14 @@ foreach $file (@files_to_commit_array)
 # get ready to commit each file
 foreach $file (@files_to_commit_array)
 {
-    $status_line     = $files_to_commit_hash{$file};
-    $operation       = substr $status_line, 0, 1;
-    $file_str        = substr $status_line, 3;
-    $timestamp_str   = $iso_timestamp_hash{$file};
-    $timestamp_mtime = $unix_timestamp_hash{$file};
-    $timestamp_git   = '';
-    $git_newer_flag  = 0;
+    $status_line      = $files_to_commit_hash{$file};
+    $operation        = substr $status_line, 0, 1;
+    $file_str         = substr $status_line, 3;
+    $timestamp_str    = $iso_timestamp_hash{$file};
+    $timestamp_mtime  = $unix_timestamp_hash{$file};
+    $timestamp_git    = '';
+    $no_backdate_flag = 0;
+    $file_escaped     = quotemeta($file);
     
     # should only occur on deleted files
     if (!defined($timestamp_str))
@@ -305,10 +317,25 @@ foreach $file (@files_to_commit_array)
 
     if ($timestamp_str =~ /[0-9]/)
     {
-        $ls_tree_head = `git ls-tree HEAD "$file" 2> /dev/null`;
+        $ls_tree_head = `git ls-tree HEAD $file_escaped 2> /dev/null`;
         if ($ls_tree_head =~ /[A-Za-z0-9]/)
         {
-            $timestamp_git = `git log -1 --pretty="format:%ct" "$file" 2>/dev/null`;
+            # default
+            #
+            # 'git log' and 'git-restore-mtime' default to author time,
+            #  and author time is more robust to git altering commit times
+            #  when no changes have occurred to the files themselves
+            if ($query_ct_flag == 0)
+            {
+                $timestamp_git =
+                  `git log -1 --pretty="format:%at" $file_escaped 2>/dev/null`;
+            }
+            # query commit time instead of author time
+            else
+            {
+                $timestamp_git =
+                  `git log -1 --pretty="format:%ct" $file_escaped 2>/dev/null`;
+            }
         }
 
         # file exists in repo already, check timestamp
@@ -317,7 +344,7 @@ foreach $file (@files_to_commit_array)
             # don't override date if git file is newer
             if ($timestamp_git >= $timestamp_mtime)
             {
-                $git_newer_flag = 1;
+                $no_backdate_flag = 1;
             }
         }
     }
@@ -358,7 +385,7 @@ foreach $file (@files_to_commit_array)
         if ($timestamp_str =~ /[0-9]/)
         {
             # file is newer than repo, retro-date commit
-            if ($git_newer_flag == 0)
+            if ($no_backdate_flag == 0)
             {
                 $message_timestamp_str = sprintf "[%s]",
                     $timestamp_str;
@@ -378,10 +405,10 @@ foreach $file (@files_to_commit_array)
         else
         {
             # set time variables to current local time, since we don't know
-            $timestamp_mtime = $current_local_mtime;
-            $timestamp_str   = strftime("%c %z",
-                                        localtime($timestamp_mtime));
-            $git_newer_flag  = 1;
+            $timestamp_mtime  = $current_local_mtime;
+            $timestamp_str    = strftime("%c %z",
+                                         localtime($timestamp_mtime));
+            $no_backdate_flag = 1;
 
             # timestamp wasn't found for some reason
             $message_timestamp_str = '[timestamp missing]';
@@ -390,10 +417,10 @@ foreach $file (@files_to_commit_array)
     else
     {
         # set time variables to current local time, since we delete *NOW*
-        $timestamp_mtime = $current_local_mtime;
-        $timestamp_str   = strftime("%c %z",
-                                    localtime($timestamp_mtime));
-        $git_newer_flag  = 1;
+        $timestamp_mtime  = $current_local_mtime;
+        $timestamp_str    = strftime("%c %z",
+                                     localtime($timestamp_mtime));
+        $no_backdate_flag = 1;
 
         $message_timestamp_str = '[file deleted]';
     }
@@ -405,7 +432,7 @@ foreach $file (@files_to_commit_array)
     $message_final_str = '';
     if ($message_user_str =~ /\S/)
     {
-        $message_final_str .= "$message_user_str";
+        $message_final_str .= $message_user_str;
     }
     if ($message_operation_str =~ /\S/)
     {
@@ -413,7 +440,7 @@ foreach $file (@files_to_commit_array)
         {
             $message_final_str .= ";\n\n";
         }
-        $message_final_str .= "$message_operation_str";
+        $message_final_str .= $message_operation_str;
     }
     if ($message_timestamp_str =~ /\S/)
     {
@@ -421,21 +448,19 @@ foreach $file (@files_to_commit_array)
         {
             $message_final_str .= ";\n";
         }
-        $message_final_str .= "      $message_timestamp_str";
+        $message_final_str .= '      $message_timestamp_str';
     }
     
     # remove trailing newline, since it just adds clutter
     $message_final_str =~ s/[\r\n]+$//;
 
-    $message_final_str       = "\"$message_final_str\"";
-    
     $commit_hash{$file}{mtime}             = $timestamp_mtime;
     $commit_hash{$file}{timestamp}         = $timestamp_str;
     $commit_hash{$file}{message_operation} = $message_operation_str;
     $commit_hash{$file}{message_timestamp} = $message_timestamp_str;
     $commit_hash{$file}{message_final}     = $message_final_str;
     $commit_hash{$file}{operation}         = $operation;
-    $commit_hash{$file}{git_newer}         = $git_newer_flag;
+    $commit_hash{$file}{no_backdate}       = $no_backdate_flag;
 }
 
 
@@ -448,7 +473,8 @@ foreach $file (sort cmp_timestamps keys %commit_hash)
     $message_timestamp_str = $commit_hash{$file}{message_timestamp};
     $message_final_str     = $commit_hash{$file}{message_final};
     $operation             = $commit_hash{$file}{operation};
-    $git_newer_flag        = $commit_hash{$file}{git_newer};
+    $no_backdate_flag      = $commit_hash{$file}{no_backdate};
+    $file_escaped          = quotemeta($file);
 
     # unset the date override environment variables
     if (defined($ENV{'GIT_AUTHOR_DATE'}))
@@ -463,7 +489,7 @@ foreach $file (sort cmp_timestamps keys %commit_hash)
     # override current date with original file timestamp
     if ($operation =~ /^[MARC]/ &&
         $timestamp_str =~ /[0-9]/ &&
-        $git_newer_flag == 0)
+        $no_backdate_flag == 0)
     {
         # set git time environment variables
         $ENV{'GIT_AUTHOR_DATE'}    = $timestamp_str;
@@ -489,7 +515,8 @@ foreach $file (sort cmp_timestamps keys %commit_hash)
     #
     if ($operation eq 'R' && defined($file_to_from_hash{$file}))
     {
-        $orig_file = $file_to_from_hash{$file};
+        $orig_file         = $file_to_from_hash{$file};
+        $orig_file_escaped = quotemeta($orig_file);
 
         # commit the file
         if ($dryrun_flag == 0)
@@ -497,7 +524,7 @@ foreach $file (sort cmp_timestamps keys %commit_hash)
             print "COMMIT: $message_operation_str\n";
             print "COMMIT:       $message_timestamp_str\n";
 
-            `echo -e -n $message_final_str | git commit -F - "$orig_file" "$file"`;
+            `echo -e -n '$message_final_str' | git commit -F - $orig_file_escaped $file_escaped`;
         }
         else
         {
@@ -514,7 +541,7 @@ foreach $file (sort cmp_timestamps keys %commit_hash)
             print "COMMIT: $message_operation_str\n";
             print "COMMIT:       $message_timestamp_str\n";
 
-            `echo -e -n $message_final_str | git commit -F - "$file"`;
+            `echo -e -n '$message_final_str' | git commit -F - $file_escaped`;
         }
         else
         {
@@ -522,6 +549,43 @@ foreach $file (sort cmp_timestamps keys %commit_hash)
             print "DRYRUN:       $message_timestamp_str\n";
         }
     }
+}
+
+# issue warning for long user messages that spill beyond 80 characters in
+# 'git log;
+if ($message_user_str =~ /\S/)
+{
+    @line_array = split /[\r\n]+/, $message_user_str;
+    
+    $long_line_flag = 0;
+
+    foreach $line (@line_array)
+    {
+        if (length $line > 75)
+        {
+            $long_line_flag = 1;
+
+            last;
+        }
+    }
+}
+
+if ($message_user_str =~ /\S/)
+{
+    if ($long_line_flag)
+    {
+        print "\n";
+        printf STDERR "MESG_WARNING: %s\n",
+            'user message > 75 characters wide, consider inserting newlines';
+    }
+
+    print "\n";
+    print "User message:\n";
+
+
+    print `echo -e '$message_user_str'`;
+    print "\n";
+
 }
 
 
