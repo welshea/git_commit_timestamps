@@ -1,15 +1,22 @@
 ## PURPOSE
 
-Hack timestamp support into Git via 3rd party scripts.  Set the commit date
-for each file to the original timestamp of the file, so that the timestamp may
-be later restored locally via Rodrigo Silva's
+Hack timestamp support into Git via 3rd party scripts.  Set the author/commit
+dates for each file to the original timestamp of the file, so that the
+timestamp may be later restored locally via Rodrigo Silva's
 [git-restore-mtime](https://github.com/MestreLion/git-tools) tool.
 
 If a file exists in the current HEAD and the local timestamp is older than
-the current version in the repository, do not override the commit date
-(use the default current local time).
+the current version in the repository, do not override the dates (use the
+git default of current local time).
 
-User-specified branches are not currently supported.
+User-specified branches are not currently supported, the script simply
+uses HEAD.
+
+There is currently no special handling of merges.  'git-restore-mtime' has
+several different options for handling merges, but until I better understand
+the ramifications of those options on my use case, I'm just using the timestamp
+that 'git log -1' chooses to report.  'git log -1 --no-merges' would probably
+be closer to the 'git-restore-mtime' default parsing of 'git whatschanged'.
 
 <BR>
 
@@ -17,13 +24,13 @@ User-specified branches are not currently supported.
 
 ## METHOD
 
-Files are committed one-by-one.  The commit date is back-dated by setting the
-GIT_AUTHOR_DATE and GIT_COMMITTER_DATE enviroment variables prior to the commit
-for each individual file.  Existing files older than the version in the
-repository, as well as newly deleted files, are *NOT* back-dated.  Files
-are committed in chronological order, oldest to newest.  Files with tied
-timestamps (such as deleted files) will commit in reverse alphabetical order,
-so that they are displayed alphabetically in 'git log'.
+Files are committed one-by-one.  The author/commit dates are back-dated by
+setting the GIT_AUTHOR_DATE and GIT_COMMITTER_DATE enviroment variables prior
+to the commit for each individual file.  Existing files older than the version
+in the repository, as well as newly deleted files, are *NOT* back-dated.
+Files are committed in chronological order, oldest to newest.  Files with
+tied timestamps (such as deleted files) will commit in reverse alphabetical
+order, so that they are displayed alphabetically in 'git log'.
 
 'git status -s -uno' is run and parsed to retrieve the list of files Git plans
 to commit.  The status of each file is printed before aborting or proceeding
@@ -39,27 +46,28 @@ and force them to be committed (UNMERGED issues will still abort).
 
 'git ls-tree HEAD "filename"' is then used to check to see if a file already
 exists in the current HEAD of the repository.  If the file exists, then
-`git log -1 --pretty="format:%ct" "filename"' is used to retrieve the last
-commit date of the file.  If the local timestamp is older than the repository
-timestamp, the commit proceeds using normal default commit date behavior
-(we don't want new changes to the file being dated before the prior versions).
+`git log -1 --pretty="format:%at" "filename"' is used to retrieve the last
+author/commit dates of the file.  If the local timestamp is older than the
+repository timestamp, the commit proceeds using normal default commit date
+behavior (we don't want new changes to the file being dated before the prior
+versions).
 
 The commit message is generated from a combination of the (optional) user-
 provided message, the operation to be performed (taken from its 'git status'
-line), and the timestamp to be recorded (if commit dates are altered in the
-future, we'll still have a record of the intended timestamp).  Semicolons
+line), and the timestamp to be recorded (if author/commit dates are altered in
+the future, we'll still have a record of the intended timestamp).  Semicolons
 are inserted between the user message, operation message, and timestamp
 message, to improve readability in the project web interface.  To preserve
 new line formatting, the message is piped to git using:
-'echo -e -n "message to commit" | git commit -F - "file to commit"'.
+'echo -e -n 'message to commit' | git commit -F - "file to commit"'.
 
 Generally, the timestamp message will simply be the timestamp of the local
-file.  If the commit date was NOT back-dated (the local timestamp was older
-than the current version in the repository),wthen the timestamp message will
-be the then-current local time, with " (local)" appended to indicate that the
-then-current local time was used instead of the local timestamp.  If a file
-is deleted, the timestamp is given as "[file deleted]", and if, for some
-reason the local timestamp cannot be determined, the timestamp message is
+file.  If the author/commit dates were NOT back-dated (the local timestamp was
+older than the current version in the repository), then the timestamp message
+will be the then-current local time, with " (local)" appended to indicate that
+the then-current local time was used instead of the local timestamp.  If a
+file is deleted, the timestamp is given as "[file deleted]", and if, for some
+reason, the local timestamp cannot be determined, the timestamp message is
 "[timestamp missing]" (the commit is not back-dated, since we cannot know
 when to back-date it to).
 
@@ -69,10 +77,14 @@ when to back-date it to).
 
 ## SYNTAX
 
-git_commit_timestamps.pl ["user message"] [--commit] [--force]
+git_commit_timestamps.pl ['user message'] [--commit] [--force] [--use-ct]
 
-If no "user message" is specified, then only the auto-generated operation
-and timestamp messages are recorded for each commit.
+If no 'user message' is specified, then only the auto-generated operation
+and timestamp messages are recorded for each commit.  NOTE -- it is
+recommended that you surround the message in single quotes, rather than
+double quotes, to prevent undesired behavior due to multiple layers of
+shell and escape interpreting.  'line1\nline2' will result in two separate
+lines, while 'line\\nline2' would yield a single line of 'line1\nline2'.
 
 If --commit is not specified, then the script performs a "dry run", where
 it summarizes the operations and auto-generated messages it plans to perform
@@ -88,6 +100,10 @@ are both different from the repository, so make *absolutely sure* git has
 correctly detected the changes that you intended to commit before you commit
 them (run without --commit first, carefully inspect the "DRYRUN:" lines).
 
+Use --query-ct to query the repository for commit time, instead of author
+time.  'git log' and 'git-restore-mtime' default to author time, and we agree
+with this choice, so we default to using author time as well.
+
 No error checking is performed, so it is recommended that you check 'git log'
 and 'git status' after you commit, to be sure that everything worked as
 expected.
@@ -95,11 +111,15 @@ expected.
 
 #### _Examples:_
 
-\> git_commit_timestamps.pl "test adding a file"
+\> git_commit_timestamps.pl 'test adding a file'
 <pre>
   GIT_TODO   A  test_files/file1.txt
   DRYRUN: ADD:  test_files/file1.txt
   DRYRUN:       [Fri May  8 14:07:58 2020 -0400]
+
+  User message:
+  test adding a file
+
   Re-run with --commit to commit the changes
 </pre>
 
