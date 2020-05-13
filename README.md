@@ -84,7 +84,8 @@ and timestamp messages are recorded for each commit.  NOTE -- it is
 recommended that you surround the message in single quotes, rather than
 double quotes, to prevent undesired behavior due to multiple layers of
 shell and escape interpreting.  'line1\nline2' will result in two separate
-lines, while 'line\\nline2' would yield a single line of 'line1\nline2'.
+lines, while 'line\\nline2' would yield a single line consisting of
+'line1\nline2'.
 
 If --commit is not specified, then the script performs a "dry run", where
 it summarizes the operations and auto-generated messages it plans to perform
