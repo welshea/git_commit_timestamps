@@ -5,9 +5,12 @@ dates for each file to the original timestamp of the file, so that the
 timestamp may be later restored locally via Rodrigo Silva's
 [git-restore-mtime](https://github.com/MestreLion/git-tools) tool.
 
-If a file exists in the current HEAD and the local timestamp is older than
-the current version in the repository, do not override the dates (use the
-git default of current local time).
+A file is not backdated in any of the following conditions: the file exists in
+the current HEAD and the local timestamp is older than the current version in
+the repository, the local timestamp is newer than the current local time (file
+is dated in the local future), or the file is newly deleted.  In these cases,
+git commit times are left unaltered, and the commit message includes the
+current local time instead of the file's local timestamp.
 
 User-specified branches are not currently supported, the script simply
 uses HEAD.
@@ -24,13 +27,13 @@ be closer to the 'git-restore-mtime' default parsing of 'git whatschanged'.
 
 ## METHOD
 
-Files are committed one-by-one.  The author/commit dates are back-dated by
+Files are committed one-by-one.  The author/commit dates are backdated by
 setting the GIT_AUTHOR_DATE and GIT_COMMITTER_DATE enviroment variables prior
 to the commit for each individual file.  Existing files older than the version
-in the repository, as well as newly deleted files, are *NOT* back-dated.
-Files are committed in chronological order, oldest to newest.  Files with
-tied timestamps (such as deleted files) will commit in reverse alphabetical
-order, so that they are displayed alphabetically in 'git log'.
+in the repository, local-future dated files, and newly deleted files are *NOT*
+backdated.  Files are committed in chronological order, oldest to newest.
+Files with tied timestamps (such as deleted files) will commit in reverse
+alphabetical order, so that they are displayed alphabetically in 'git log'.
 
 'git status -s -uno' is run and parsed to retrieve the list of files Git plans
 to commit.  The status of each file is printed before aborting or proceeding
@@ -62,14 +65,14 @@ preserve new line formatting, the message is piped to git using:
 'echo -e -n 'message to commit' | git commit -F - "file to commit"'.
 
 Generally, the timestamp message will simply be the timestamp of the local
-file.  If the author/commit dates were NOT back-dated (the local timestamp was
+file.  If the author/commit dates were NOT backdated (the local timestamp was
 older than the current version in the repository), then the timestamp message
 will be the then-current local time, with " (local)" appended to indicate that
 the then-current local time was used instead of the local timestamp.  If a
 file is deleted, the timestamp is given as "[file deleted]", and if, for some
 reason, the local timestamp cannot be determined, the timestamp message is
-"[timestamp missing]" (the commit is not back-dated, since we cannot know
-when to back-date it to).
+"[timestamp missing]" (the commit is not backdated, since we cannot know
+when to backdate it to).
 
 <BR>
 
