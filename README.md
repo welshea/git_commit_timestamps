@@ -52,13 +52,13 @@ repository timestamp, the commit proceeds using normal default commit date
 behavior (we don't want new changes to the file being dated before the prior
 versions).
 
-The commit message is generated from a combination of the (optional) user-
-provided message, the operation to be performed (taken from its 'git status'
-line), and the timestamp to be recorded (if author/commit dates are altered in
-the future, we'll still have a record of the intended timestamp).  Semicolons
-are inserted between the user message, operation message, and timestamp
-message, to improve readability in the project web interface.  To preserve
-new line formatting, the message is piped to git using:
+The commit message is generated from a combination of the (optional)
+user-provided message, the operation to be performed (taken from its 'git
+status' line), and the timestamp to be recorded (if author/commit dates are
+altered in the future, we'll still have a record of the intended timestamp).
+Semicolons are inserted between the user message, operation message, and
+timestamp message, to improve readability in the project web interface.  To
+preserve new line formatting, the message is piped to git using:
 'echo -e -n 'message to commit' | git commit -F - "file to commit"'.
 
 Generally, the timestamp message will simply be the timestamp of the local
@@ -77,7 +77,7 @@ when to back-date it to).
 
 ## SYNTAX
 
-git_commit_timestamps.pl ['user message'] [--commit] [--force] [--use-ct]
+git_commit_timestamps.pl ['user message'] [--commit] [--force] [--query-ct]
 
 If no 'user message' is specified, then only the auto-generated operation
 and timestamp messages are recorded for each commit.  NOTE -- it is
