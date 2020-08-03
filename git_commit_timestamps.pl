@@ -347,6 +347,12 @@ foreach $file (@files_to_commit_array)
                 $no_backdate_flag = 1;
             }
         }
+
+        # file is dated in the future, use current local time instead
+        if ($timestamp_mtime > $current_local_mtime)
+        {
+            $no_backdate_flag = 1;
+        }
     }
     # make sure the invalid time variables are blanked out
     else
@@ -390,7 +396,7 @@ foreach $file (@files_to_commit_array)
                 $message_timestamp_str = sprintf "[%s]",
                     $timestamp_str;
             }
-            # commit git server timestamp as usual, comment as local
+            # commit git server timestamp as usual, comment as current local
             # overwrite local file timestamp internally
             else
             {
