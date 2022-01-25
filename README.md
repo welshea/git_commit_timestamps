@@ -51,9 +51,10 @@ and force them to be committed (UNMERGED issues will still abort).
 exists in the current HEAD of the repository.  If the file exists, then
 `git log -1 --pretty="format:%at" "filename"' is used to retrieve the last
 author/commit dates of the file.  If the local timestamp is older than the
-repository timestamp, the commit proceeds using normal default commit date
-behavior (we don't want new changes to the file being dated before the prior
-versions).
+repository timestamp (we don't want new changes to the file being dated before
+the prior versions), or in the local future (we want to limit timestamps in
+the git server future as much as possible), the commit proceeds using normal
+default commit date behavior .
 
 The commit message is generated from a combination of the (optional)
 user-provided message, the operation to be performed (taken from its 'git
@@ -66,13 +67,13 @@ preserve new line formatting, the message is piped to git using:
 
 Generally, the timestamp message will simply be the timestamp of the local
 file.  If the author/commit dates were NOT backdated (the local timestamp was
-older than the current version in the repository), then the timestamp message
-will be the then-current local time, with " (local)" appended to indicate that
-the then-current local time was used instead of the local timestamp.  If a
-file is deleted, the timestamp is given as "[file deleted]", and if, for some
-reason, the local timestamp cannot be determined, the timestamp message is
-"[timestamp missing]" (the commit is not backdated, since we cannot know
-when to backdate it to).
+older than the current version in the repository, or in the local future),
+then the timestamp message will be the then-current local time, with
+" (local)" appended to indicate that the then-current local time was used
+instead of the local timestamp.  If a file is deleted, the timestamp is given
+as "[file deleted]".  If, for some reason, the local timestamp cannot be
+determined, the timestamp message is set to "[timestamp missing]" (the commit
+is not backdated, since we cannot know when to backdate it to).
 
 <BR>
 
