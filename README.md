@@ -72,8 +72,8 @@ then the timestamp message will be the then-current local time, with
 " (local)" appended to indicate that the then-current local time was used
 instead of the local timestamp.  If a file is deleted, the timestamp is given
 as "[file deleted]".  If, for some reason, the local timestamp cannot be
-determined, the timestamp message is set to "[timestamp missing]" (the commit
-is not backdated, since we cannot know when to backdate it to).
+determined, the timestamp message is set to "[timestamp missing]" and the
+commit is not backdated, since we cannot know when to backdate it to.
 
 <BR>
 
@@ -143,7 +143,7 @@ Adding the --commit flag would result in the following git log entry:
 Potentially unintended de-synced staging behavior:
 
 <pre>
-> echo "delete_me" > delete me
+> echo "delete_me" > delete_me
 > git add delete_me
 > rm delete_me       # NOTE -- delete was performed outside of 'git rm'
 > git_commit_timestamps.pl --force
