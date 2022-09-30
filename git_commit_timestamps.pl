@@ -224,7 +224,7 @@ if ($git_status_results =~ /\S/)
 }
 
 # print de-sycned files
-if (defined %desynced_hash)
+if (%desynced_hash)
 {
     foreach $line (sort keys %desynced_hash)
     {
@@ -233,7 +233,7 @@ if (defined %desynced_hash)
 }
 
 # print unmerged files
-if (defined %unmerged_hash)
+if (%unmerged_hash)
 {
     foreach $line (sort keys %unmerged_hash)
     {
@@ -250,9 +250,11 @@ if ($bad_status_flag)
     exit(2);
 }
 
-if (!defined(%files_to_commit_hash))
+if (%files_to_commit_hash == 0)
 {
     print "No files to commit\n";
+    
+    exit(0);
 }
 
 
