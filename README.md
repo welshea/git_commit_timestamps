@@ -60,7 +60,7 @@ The commit message is generated from a combination of the (optional)
 user-provided message, the operation to be performed (taken from its 'git
 status' line), and the timestamp to be recorded (if author/commit dates are
 altered in the future, we'll still have a record of the intended timestamp).
-Semicolons are inserted between the user message, operation message, and
+Semicolons are inserted between the commit message, operation message, and
 timestamp message, to improve readability in the project web interface.  To
 preserve new line formatting, the message is piped to git using:
 'echo -e -n 'message to commit' | git commit -F - "file to commit"'.
@@ -81,9 +81,9 @@ commit is not backdated, since we cannot know when to backdate it to.
 
 ## SYNTAX
 
-git_commit_timestamps.pl ['user message'] [--commit] [--force] [--query-ct]
+git_commit_timestamps.pl ['commit message'] [--commit] [--force] [--no-backdate] [--query-ct]
 
-If no 'user message' is specified, then only the auto-generated operation
+If no 'commit message' is specified, then only the auto-generated operation
 and timestamp messages are recorded for each commit.  NOTE -- it is
 recommended that you surround the message in single quotes, rather than
 double quotes, to prevent undesired behavior due to multiple layers of
@@ -104,6 +104,12 @@ changes in unexpected ways when the staged and unstaged versions of the file
 are both different from the repository, so make *absolutely sure* git has
 correctly detected the changes that you intended to commit before you commit
 them (run without --commit first, carefully inspect the "DRYRUN:" lines).
+
+Timestamp preservation via commit backdating is disabled with the --no-backdate
+flag.  The timestamp that would have been backdated is still contained in
+the commit message.  All other script functionality is retained.  This can
+be useful if you want to commit using standard git timestamp behavior,
+but still want to keep track of the original timestamps in the commit messages.
 
 Use --query-ct to query the repository for commit time, instead of author
 time.  'git log' and 'git-restore-mtime' default to author time, and we agree
