@@ -49,6 +49,7 @@ $dryrun_flag         = 1;
 $force_flag          = 0;
 $desync_detected     = 0;
 $query_ct_flag       = 0;
+$opt_backdate_flag   = 1;
 
 for ($i = 0; $i < @ARGV; $i++)
 {
@@ -56,7 +57,15 @@ for ($i = 0; $i < @ARGV; $i++)
 
     if ($field =~ /^-/)
     {
-        if ($field eq '--dryrun')
+        if ($field eq '--backdate')
+        {
+            $opt_backdate_flag = 1;
+        }
+        elsif ($field eq '--no-backdate')
+        {
+            $opt_backdate_flag = 0;
+        }
+        elsif ($field eq '--dryrun')
         {
             $dryrun_flag = 1;
         }
@@ -77,10 +86,12 @@ for ($i = 0; $i < @ARGV; $i++)
             print STDERR "git_commit_timestamps.pl [options] [\'commit message\']\n";
             print STDERR "\n";
             print STDERR "   Options:\n";
-            print STDERR "      --commit      commit staged changes\n";
-            print STDERR "      --dryrun      perform a dry run, do not commit (default)\n";
-            print STDERR "      --force       ignore de-synced staging issues, commit anyways\n";
-            print STDERR "      --query-ct    query repository commit time, rather than author time\n";
+            print STDERR "      --backdate     backdate commits to preserve timestamps (default)\n";
+            print STDERR "      --no-backdate  disable backdating, keep all other functionality\n";
+            print STDERR "      --commit       commit staged changes\n";
+            print STDERR "      --dryrun       perform a dry run, do not commit (default)\n";
+            print STDERR "      --force        ignore de-synced staging issues, commit anyways\n";
+            print STDERR "      --query-ct     query repository commit time, rather than author time\n";
             print STDERR "\n";
             print STDERR "   Options and commit message can be given in any order\n";
             print STDERR "   Enclose the commit message in '' to ensure proper escape handling\n";
@@ -472,6 +483,12 @@ foreach $file (@files_to_commit_array)
 }
 
 
+if ($opt_backdate_flag == 0)
+{
+    printf STDERR "Disabling commit backdating, timestamps still in commit message\n";
+}
+
+
 # commit the files
 foreach $file (sort cmp_timestamps keys %commit_hash)
 {
@@ -495,7 +512,8 @@ foreach $file (sort cmp_timestamps keys %commit_hash)
     }
     
     # override current date with original file timestamp
-    if ($operation =~ /^[MARC]/ &&
+    if ($opt_backdate_flag &&
+        $operation =~ /^[MARC]/ &&
         $timestamp_str =~ /[0-9]/ &&
         $no_backdate_flag == 0)
     {
