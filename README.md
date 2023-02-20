@@ -105,15 +105,15 @@ are both different from the repository, so make *absolutely sure* git has
 correctly detected the changes that you intended to commit before you commit
 them (run without --commit first, carefully inspect the "DRYRUN:" lines).
 
+Use --query-ct to query the repository for commit time, instead of author
+time.  'git log' and 'git-restore-mtime' default to author time, and we agree
+with this choice, so we default to using author time as well.
+
 Timestamp preservation via commit backdating is disabled with the --no-backdate
 flag.  The timestamp that would have been backdated is still contained in
 the commit message.  All other script functionality is retained.  This can
 be useful if you want to commit using standard git timestamp behavior,
 but still want to keep track of the original timestamps in the commit messages.
-
-Use --query-ct to query the repository for commit time, instead of author
-time.  'git log' and 'git-restore-mtime' default to author time, and we agree
-with this choice, so we default to using author time as well.
 
 No error checking is performed, so it is recommended that you check 'git log'
 and 'git status' after you commit, to be sure that everything worked as
