@@ -13,7 +13,12 @@ git commit times are left unaltered, and the commit message includes the
 current local time instead of the file's local timestamp.
 
 User-specified branches are not currently supported, the script simply
-uses HEAD.
+uses HEAD.  Pointing HEAD to another branch or commit *might* produce the
+expected results with this script, or it might not.  I haven't tested it, as I
+am a relatively new user of Git and haven't "branched out" into branches yet.
+For example, there are probably some edge cases that would require peerig into
+the future and/or past on other branches that aren't going to be handled
+correctly....
 
 There is currently no special handling of merges.  'git-restore-mtime' has
 several different options for handling merges, but until I better understand
