@@ -52,14 +52,12 @@ by issuing 'git add -A "filename"' or 'git reset -- "filename"' commands, as
 appropriate.  The --force option can be specified to override DESYNCED issues
 and force them to be committed (UNMERGED issues will still abort).
 
-'git ls-tree HEAD "filename"' is then used to check to see if a file already
-exists in the current HEAD of the repository.  If the file exists, then
-`git log -1 --pretty="format:%at" "filename"' is used to retrieve the last
-author/commit dates of the file.  If the local timestamp is older than the
-repository timestamp (we don't want new changes to the file being dated before
-the prior versions), or in the local future (we want to limit timestamps in
-the git server future as much as possible), the commit proceeds using normal
-default commit date behavior .
+`git log -1 --follow --pretty="format:%at" -- "filename"' is used to retrieve
+the last author/commit dates of the file.  If the local timestamp is older
+than the repository timestamp (we don't want new changes to the file being
+dated before the prior versions), or in the local future (we want to limit
+timestamps in the git server future as much as possible), the commit proceeds
+using normal default commit date behavior .
 
 The commit message is generated from a combination of the (optional)
 user-provided message, the operation to be performed (taken from its 'git
