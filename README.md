@@ -83,10 +83,10 @@ commit is not backdated, since we cannot know when to backdate it to.
 I found an edge case recently that I need to think about some more.  I
 touched some soft links (touch -h) to indicate that the content of the files
 they point to had changed.  I wanted to commit the re-dated soft links with a
-new commit message regarding the changes to the files that they point to.  
+new commit message regarding the changes to the files that they point to.
 Even though the timestamp had changed, and the content of the files they link
 to had changed, git refused to stage/commit the re-dated soft links, since it
-considered them to be unchanged (they still point to the same file names).  
+considered them to be unchanged (they still point to the same file names).
 The workaround was to 'git rm' each soft link, 'git add .', commit, recreate
 each soft link, 'git add .' again, then commit again with the originally
 intended commit message.  However, instead of using the fresh time stamps of
