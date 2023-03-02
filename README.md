@@ -80,24 +80,27 @@ as "[file deleted]".  If, for some reason, the local timestamp cannot be
 determined, the timestamp message is set to "[timestamp missing]" and the
 commit is not backdated, since we cannot know when to backdate it to.
 
-I found an edge case recently that I can't do much about.  I touched some
-soft links (touch -h) to indicate that the content of the files they point to
-had changed.  I wanted to commit the re-dated soft links with a new commit
-message regarding the changes to the files that they point to.  Even though
-the timestamp had changed, and the content of the files they link to had
-changed, git refused to stage the re-dated soft links, since it considered
-them to be unchaged (they still point the same file names).  The workaround
-was to 'git rm' each soft link, 'git add .', commit, recreate each soft link,
-'git add .' again, then commit again with the originally intended commit
-message.  Git was apparently too smart for its own good, and, instead of using
-the fresh time stamps of the re-created soft links that were newly staged, the
-timestamps it reported to my script were the previously touched timestamps the
-links had prior to 'git rm'.  So, the 'git rm' commit is 12 minutes in the
-future of the incorrectly-cached dates of the new re-linked soft links that
-were committed afterwards.  Argh, stupid git.  Maybe I should have 'git reset'
-after the first attempt that refused to stage them?  Why would git remember
-the timestamps of the files prior to the 'git rm' instead of using the newer
-timestamps after the files were re-created and re-staged?  Sigh.
+I found an edge case recently that I need to think about some more.  I
+touched some soft links (touch -h) to indicate that the content of the files
+they point to had changed.  I wanted to commit the re-dated soft links with a
+new commit message regarding the changes to the files that they point to.  
+Even though the timestamp had changed, and the content of the files they link
+to had changed, git refused to stage/commit the re-dated soft links, since it
+considered them to be unchanged (they still point to the same file names).  
+The workaround was to 'git rm' each soft link, 'git add .', commit, recreate
+each soft link, 'git add .' again, then commit again with the originally
+intended commit message.  However, instead of using the fresh time stamps of
+the re-created soft links that were newly staged, the timestamps it reported
+to my script were, apparently, the previously touched timestamps the links had
+prior to 'git rm'.  So, the 'git rm' commit is 12 minutes in the future of the
+dates of the new re-linked soft links that were committed afterwards.  It turns
+out that, for soft links, git takes its timestamps from the file the soft link
+points to, NOT from the soft link itself.  Now that I think about it, this
+makes sense from a UNIX perspective.  So, since the timestamp of the files the
+links pointed to was 12 minutes before I performed the 'git rm' workaround
+commit, my script wound up commiting these files "in the past".  I'll need to
+think some more about how I might detect and prevent this sort of future/past
+'git rm' edge case from being committed strangely in the future.
 
 <BR>
 
