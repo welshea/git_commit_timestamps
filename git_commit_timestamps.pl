@@ -328,27 +328,24 @@ foreach $file (@files_to_commit_array)
         $timestamp_mtime = '';
     }
 
+    # get commit time of latest commit involving the file, if it ever existed
     if ($timestamp_str =~ /[0-9]/)
     {
-        $ls_tree_head = `git ls-tree HEAD $file_escaped 2> /dev/null`;
-        if ($ls_tree_head =~ /[A-Za-z0-9]/)
+        # default
+        #
+        # 'git log' and 'git-restore-mtime' default to author time,
+        #  and author time is more robust to git altering commit times
+        #  when no changes have occurred to the files themselves
+        if ($query_ct_flag == 0)
         {
-            # default
-            #
-            # 'git log' and 'git-restore-mtime' default to author time,
-            #  and author time is more robust to git altering commit times
-            #  when no changes have occurred to the files themselves
-            if ($query_ct_flag == 0)
-            {
-                $timestamp_git =
-                  `git log -1 --pretty="format:%at" $file_escaped 2>/dev/null`;
-            }
-            # query commit time instead of author time
-            else
-            {
-                $timestamp_git =
-                  `git log -1 --pretty="format:%ct" $file_escaped 2>/dev/null`;
-            }
+            $timestamp_git =
+                `git log -1 --follow --pretty="format:%at" -- $file_escaped 2>/dev/null`;
+        }
+        # query commit time instead of author time
+        else
+        {
+            $timestamp_git =
+                `git log -1 --follow --pretty="format:%ct" -- $file_escaped 2>/dev/null`;
         }
 
         # file exists in repo already, check timestamp
@@ -366,6 +363,8 @@ foreach $file (@files_to_commit_array)
         {
             $no_backdate_flag = 1;
         }
+        
+        printf STDERR "%s\t%s\n", $timestamp_git, $timestamp_mtime;
     }
     # make sure the invalid time variables are blanked out
     else
