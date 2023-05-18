@@ -364,7 +364,7 @@ foreach $file (@files_to_commit_array)
             $no_backdate_flag = 1;
         }
         
-        printf STDERR "%s\t%s\n", $timestamp_git, $timestamp_mtime;
+        # printf STDERR "%s\t%s\n", $timestamp_git, $timestamp_mtime;
     }
     # make sure the invalid time variables are blanked out
     else
