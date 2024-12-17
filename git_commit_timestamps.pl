@@ -614,6 +614,17 @@ if ($message_user_str =~ /\S/)
 }
 
 
+# unset the date override environment variables
+if (defined($ENV{'GIT_AUTHOR_DATE'}))
+{
+    delete $ENV{'GIT_AUTHOR_DATE'};
+}
+if (defined($ENV{'GIT_COMMITTER_DATE'}))
+{
+    delete $ENV{'GIT_COMMITTER_DATE'};
+}
+
+
 if ($desync_detected && $force_flag)
 {
     print STDERR "WARNING    de-synced staged files detected, be sure git commits as intended\n";
