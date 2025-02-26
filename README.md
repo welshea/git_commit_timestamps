@@ -16,7 +16,7 @@ User-specified branches are not currently supported, the script simply
 uses HEAD.  Pointing HEAD to another branch or commit *might* produce the
 expected results with this script, or it might not.  I haven't tested it, as I
 am a relatively new user of Git and haven't "branched out" into branches yet.
-For example, there are probably some edge cases that would require peerig into
+For example, there are probably some edge cases that would require peering into
 the future and/or past on other branches that aren't going to be handled
 correctly....
 
@@ -57,7 +57,7 @@ the last author/commit dates of the file.  If the local timestamp is older
 than the repository timestamp (we don't want new changes to the file being
 dated before the prior versions), or in the local future (we want to limit
 timestamps in the git server future as much as possible), the commit proceeds
-using normal default commit date behavior .
+using normal default commit date behavior.
 
 The commit message is generated from a combination of the (optional)
 user-provided message, the operation to be performed (taken from its 'git
